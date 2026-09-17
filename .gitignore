@@ -2,3 +2,13 @@
 vendor/
 terraform-provider*
 .env
+
+# Local dev smoke-test artefacts
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# UAT signing keys - private key must never be committed
+dev/uat/keys/
+*.pem
+__pycache__/

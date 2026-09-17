@@ -1,0 +1,15 @@
+# Terraform CLI config for local provider development.
+#
+# Activated per-shell by dev/env.ps1 (sets TF_CLI_CONFIG_FILE), so it never
+# touches the global %APPDATA%\terraform.rc - which points at a different
+# checkout.
+#
+# With dev_overrides, Terraform runs the terraform-provider-tableau.exe found
+# in this directory instead of downloading from the registry. Skip
+# `terraform init`; go straight to validate/plan/apply.
+provider_installation {
+  dev_overrides {
+    "gthesheep/tableau" = "G:/My Drive/GitHub/terraform-provider-tableau-v2"
+  }
+  direct {}
+}
