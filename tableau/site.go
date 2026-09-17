@@ -30,8 +30,37 @@ type SiteListResponse struct {
 	Pagination    PaginationDetails `json:"pagination"`
 }
 
+// sitesUrl is {server}/api/{version}/sites. Site methods live here, not under
+// the signed-in site's ApiUrl (which would give .../sites/{site-id}/sites).
+func (c *Client) sitesUrl() string {
+	return fmt.Sprintf("%s/sites", c.BaseUrl)
+}
+
 func (c *Client) GetSite(siteID string) (*Site, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/sites", c.ApiUrl), nil)
+	// Query Site works on Tableau Cloud and Server, but only for the signed-in site.
+	if siteID == c.SiteID {
+		req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s", c.sitesUrl(), siteID), nil)
+		if err != nil {
+			return nil, err
+		}
+
+		body, err := c.doRequest(req)
+		if err != nil {
+			return nil, err
+		}
+
+		siteResponse := SiteResponse{}
+		err = json.Unmarshal(body, &siteResponse)
+		if err != nil {
+			return nil, err
+		}
+
+		return &siteResponse.Site, nil
+	}
+
+	// Any other site needs Query Sites, which is Tableau Server only - e.g. reading
+	// a site this provider just created. Tableau Cloud returns an error here.
+	req, err := http.NewRequest("GET", c.sitesUrl(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +89,7 @@ func (c *Client) GetSite(siteID string) (*Site, error) {
 
 	for page := pageNumber + 1; page <= totalPageCount; page++ {
 		fmt.Printf("Searching page %d", page)
-		req, err = http.NewRequest("GET", fmt.Sprintf("%s/sites?pageNumber=%d", c.ApiUrl, page), nil)
+		req, err = http.NewRequest("GET", fmt.Sprintf("%s?pageNumber=%d", c.sitesUrl(), page), nil)
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +128,8 @@ func (c *Client) CreateSite(name, contentURL string) (*Site, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/sites", c.ApiUrl), strings.NewReader(string(newSiteJson)))
+	// Create Site is Tableau Server only.
+	req, err := http.NewRequest("POST", c.sitesUrl(), strings.NewReader(string(newSiteJson)))
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +163,7 @@ func (c *Client) UpdateSite(siteID, name, contentURL string) (*Site, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/sites/%s", c.ApiUrl, siteID), strings.NewReader(string(newSiteJson)))
+	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/%s", c.sitesUrl(), siteID), strings.NewReader(string(newSiteJson)))
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +184,8 @@ func (c *Client) UpdateSite(siteID, name, contentURL string) (*Site, error) {
 
 func (c *Client) DeleteSite(siteID string) error {
 
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/sites/%s", c.ApiUrl, siteID), nil)
+	// Delete Site is Tableau Server only.
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s", c.sitesUrl(), siteID), nil)
 	if err != nil {
 		return err
 	}
