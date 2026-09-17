@@ -10,7 +10,9 @@ import (
 )
 
 type Client struct {
-	ApiUrl     string
+	ApiUrl     string // {server}/api/{version}/sites/{site-id} - for site-scoped methods
+	BaseUrl    string // {server}/api/{version} - for methods that aren't under a site, e.g. /sites
+	SiteID     string // ID of the site signed in to
 	HTTPClient *http.Client
 	AuthToken  string
 }
@@ -86,7 +88,9 @@ func NewClient(server, username, password, personalAccessTokenName, personalAcce
 			return nil, err
 		}
 
-		c.ApiUrl = fmt.Sprintf("%s/sites/%s", baseUrl, *ar.SignInResponseData.SiteDetails.ID)
+		c.BaseUrl = baseUrl
+		c.SiteID = *ar.SignInResponseData.SiteDetails.ID
+		c.ApiUrl = fmt.Sprintf("%s/sites/%s", baseUrl, c.SiteID)
 		c.AuthToken = ar.SignInResponseData.Token
 	}
 
